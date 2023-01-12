@@ -1,5 +1,7 @@
 import React, {useState} from 'react';
 import axios from 'axios';
+import PageFullWidth from 'components/Layout/PageFullWidth';
+import Container from 'components/Layout/Container';
 import ProductCard from './components/ProductCard';
 import SignIn from './components/SignIn';
 import Header from './components/Header';
@@ -57,32 +59,32 @@ export default function Shop() {
   const [user, setUser] = useState<User | null>(null);
   const [showModal, setShowModal] = useState<boolean>(false);
 
-  const signIn = async () => {
+const signIn = async () => {
     const scopes = ['username', 'payments'];
     const authResult: AuthResult = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
     signInUser(authResult);
     setUser(authResult.user);
-  }
+} 
 
-  const signOut = () => {
+const signOut = () => {
     setUser(null);
     signOutUser();
-  }
+}
 
-  const signInUser = (authResult: AuthResult) => {
+const signInUser = (authResult: AuthResult) => {
     axiosClient.post('/user/signin', {authResult});
     return setShowModal(false);
-  }
+}
 
-  const signOutUser = () => {
+const signOutUser = () => {
     return axiosClient.get('/user/signout');
-  }
+}
 
-  const onModalClose = () => {
+const onModalClose = () => {
     setShowModal(false);
-  }
+}
 
-  const orderProduct = async (memo: string, amount: number, paymentMetadata: MyPaymentMetadata) => {
+const orderProduct = async (memo: string, amount: number, paymentMetadata: MyPaymentMetadata) => {
     if(user === null) {
       return setShowModal(true);
     }
@@ -95,7 +97,7 @@ export default function Shop() {
     };
     const payment = await window.Pi.createPayment(paymentData, callbacks);
     console.log(payment);
-  }
+}
 
   const onIncompletePaymentFound = (payment: PaymentDTO) => {
     console.log("onIncompletePaymentFound", payment);
@@ -126,27 +128,28 @@ export default function Shop() {
   }
 
   return (
-    <>
-      <Header user={user} onSignIn={signIn} onSignOut={signOut}/>
+    <PageFullWidth>
+      <Container>
+          {/* <Header user={user} onSignIn={signIn} onSignOut={signOut}/> */}
+          <ProductCard
+            name="Apple Pie"
+            description="You know what this is. Pie. Apples. Apple pie."
+            price={3}
+            pictureURL="https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/Apple_pie.jpg/1280px-Apple_pie.jpg"
+            pictureCaption="Picture by Dan Parsons - https://www.flickr.com/photos/dan90266/42759561/, CC BY-SA 2.0, https://commons.wikimedia.org/w/index.php?curid=323125"
+            onClickBuy={() => orderProduct("Order Apple Pie", 3, { productId: 'apple_pie_1' })}
+          />
+          <ProductCard
+            name="Lemon Meringue Pie"
+            description="Non-contractual picture. We might have used oranges because we had no lemons. Order at your own risk."
+            price={5}
+            pictureURL="https://live.staticflickr.com/1156/5134246283_f2686ff8a8_b.jpg"
+            pictureCaption="Picture by Sistak - https://www.flickr.com/photos/94801434@N00/5134246283, CC BY-SA 2.0"
+            onClickBuy={() => orderProduct("Order Lemon Meringue Pie", 5, { productId: 'lemon_pie_1' })}
+          />
 
-      <ProductCard
-        name="Apple Pie"
-        description="You know what this is. Pie. Apples. Apple pie."
-        price={3}
-        pictureURL="https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/Apple_pie.jpg/1280px-Apple_pie.jpg"
-        pictureCaption="Picture by Dan Parsons - https://www.flickr.com/photos/dan90266/42759561/, CC BY-SA 2.0, https://commons.wikimedia.org/w/index.php?curid=323125"
-        onClickBuy={() => orderProduct("Order Apple Pie", 3, { productId: 'apple_pie_1' })}
-      />
-      <ProductCard
-        name="Lemon Meringue Pie"
-        description="Non-contractual picture. We might have used oranges because we had no lemons. Order at your own risk."
-        price={5}
-        pictureURL="https://live.staticflickr.com/1156/5134246283_f2686ff8a8_b.jpg"
-        pictureCaption="Picture by Sistak - https://www.flickr.com/photos/94801434@N00/5134246283, CC BY-SA 2.0"
-        onClickBuy={() => orderProduct("Order Lemon Meringue Pie", 5, { productId: 'lemon_pie_1' })}
-      />
-
-      { showModal && <SignIn onSignIn={signIn} onModalClose={onModalClose} /> }
-    </>
+          { showModal && <SignIn onSignIn={signIn} onModalClose={onModalClose} /> }
+      </Container>
+    </PageFullWidth>
   );
 }
