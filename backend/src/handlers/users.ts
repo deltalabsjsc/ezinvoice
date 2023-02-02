@@ -49,4 +49,44 @@ export default function mountUserEndpoints(router: Router) {
     req.session.currentUser = null;
     return res.status(200).json({ message: "User signed out" });
   });
+
+  // Get user
+  router.get('/info', async (req, res) => {
+    try {
+      if (!req.session.currentUser) {
+        return res.status(401).json({ error: 'unauthorized', message: "User needs to sign in first" });
+      }
+  
+      const userId = req.session.currentUser._id;
+      const userCollection = req.app.locals.userCollection;
+      const user = await userCollection.findOne({ _id: userId });
+      return res.status(200).json(user);
+    } catch (error) {
+      console.log(error);
+      return res.status(500).json({ error: 'internal_error', message: "Internal error" });
+    }
+  });
+
+  // Update user
+  router.post('/update', async (req, res) => {
+    try {
+      if (!req.session.currentUser) {
+        return res.status(401).json({ error: 'unauthorized', message: "User needs to sign in first" });
+      }
+  
+      const userCollection = req.app.locals.userCollection;
+      const user = req.session.currentUser;
+      const data = req.body;
+      
+      const result = await userCollection.findOneAndUpdate(
+        { _id: user._id },
+        { $set: data },
+        { new: true },
+      )
+      return res.status(200).json(result);
+    } catch (error) {
+      console.log(error);
+      return res.status(500).json({ error: 'internal_error', message: "Internal error" });
+    }
+  });
 }
