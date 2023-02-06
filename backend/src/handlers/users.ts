@@ -1,14 +1,12 @@
 import { Router } from "express";
 
 import platformAPIClient from "../services/platformAPIClient";
-
+import UsersModel from "../models/users";
 
 export default function mountUserEndpoints(router: Router) {
   // handle the user auth accordingly
   router.post('/signin', async (req, res) => {
     const auth = req.body.authResult;
-    const userCollection = req.app.locals.userCollection;
-
     try {
       // Verify the user's access token with the /me endpoint:
       const me = await platformAPIClient.get(`/v2/me`, { headers: { 'Authorization': `Bearer ${auth.accessToken}` } });
@@ -18,10 +16,10 @@ export default function mountUserEndpoints(router: Router) {
       return res.status(401).json({error: "Invalid access token"}) 
     }
 
-    let currentUser = await userCollection.findOne({ uid: auth.user.uid });
+    let currentUser = await UsersModel.findOne({ uid: auth.user.uid });
 
     if (currentUser) {
-      await userCollection.updateOne({
+      await UsersModel.updateOne({
         _id: currentUser._id
       }, {
         $set: {
@@ -29,14 +27,15 @@ export default function mountUserEndpoints(router: Router) {
         }
       });
     } else {
-      const insertResult = await userCollection.insertOne({
+      const insertResult = new UsersModel({
         username: auth.user.username,
         uid: auth.user.uid,
         roles: auth.user.roles,
         accessToken: auth.accessToken
       });
+      await insertResult.save();
       
-      currentUser = await userCollection.findOne(insertResult.insertedId);
+      currentUser = await UsersModel.findOne(insertResult._id);
     }
 
     req.session.currentUser = currentUser;
@@ -45,7 +44,7 @@ export default function mountUserEndpoints(router: Router) {
   });
 
   // handle the user auth accordingly
-  router.get('/signout', async (req, res) => {
+  router.post('/signout', async (req, res) => {
     req.session.currentUser = null;
     return res.status(200).json({ message: "User signed out" });
   });
@@ -58,8 +57,7 @@ export default function mountUserEndpoints(router: Router) {
       }
   
       const userId = req.session.currentUser._id;
-      const userCollection = req.app.locals.userCollection;
-      const user = await userCollection.findOne({ _id: userId });
+      const user = await UsersModel.findOne({ _id: userId });
       return res.status(200).json(user);
     } catch (error) {
       console.log(error);
@@ -74,13 +72,16 @@ export default function mountUserEndpoints(router: Router) {
         return res.status(401).json({ error: 'unauthorized', message: "User needs to sign in first" });
       }
   
-      const userCollection = req.app.locals.userCollection;
       const user = req.session.currentUser;
       const data = req.body;
       
-      const result = await userCollection.findOneAndUpdate(
+      const result = await UsersModel.findOneAndUpdate(
         { _id: user._id },
-        { $set: data },
+        { $set: {
+          "firstName": data.firstName,
+          "lastName": data.lastName,
+          "email": data.email,
+        } },
         { new: true },
       )
       return res.status(200).json(result);
